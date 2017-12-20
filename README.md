@@ -11,4 +11,5 @@ Two major changes were made:
   
 Usage:
   python iterative_cleaner.py -h
+  
   python iterative_cleaner.py archive
