@@ -10,6 +10,7 @@ Two major changes were made:
   2. The detrending algorithm was removed. This feature may be reintroduced with different default parameters.
   
 Usage:
+
   python iterative_cleaner.py -h
   
   python iterative_cleaner.py archive
