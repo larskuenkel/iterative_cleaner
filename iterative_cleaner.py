@@ -115,7 +115,7 @@ def clean(ar, args, arch):
         # Test whether weigths were already used in a previous iteration
         new_weights = patient.get_weights()
         diff_weigths = np.sum(new_weights != test_weights[-1])
-        rfi_frac = (new_weights.size - np.sum(new_weights)) / new_weights.size
+        rfi_frac = (new_weights.size - np.count_nonzero(new_weights)) / float(new_weights.size)
 
         # Print the changes to the previous loop to help in choosing a suitable max_iter
         print ("Differences to previous weights: %s  RFI fraction: %s" %(diff_weigths, rfi_frac))
