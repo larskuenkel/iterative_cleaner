@@ -32,6 +32,8 @@ def parse_arguments():
         metavar=('pulse_start', 'pulse_end', 'scaling_factor'), help="Defines the range of the pulse and a suppression factor.")
     parser.add_argument('-o', '--output', type=str, default='', metavar=('output_filename'), 
         help="Name of the output file. If set to 'std' the pattern NAME.FREQ.MJD.ar will be used.")
+    parser.add_argument('--memory', action='store_true', help='Do not pscrunch the archive while it is in memory.\
+                                                                Costs RAM but prevents having to reload the archive.')
     args = parser.parse_args()
     return args
 
@@ -57,7 +59,10 @@ def main(args):
 
 def clean(ar, args, arch):
     orig_weights = ar.get_weights()
-    ar.pscrunch()
+    if args.memory and not args.pscrunch:
+        pass
+    else:
+        ar.pscrunch()
     patient = ar.clone()
     ar_name = ar.get_filename().split()[-1]
     x = 0
@@ -74,7 +79,7 @@ def clean(ar, args, arch):
         print ("Loop: %s" % x)
 
         # Prepare the data for template creation
-        patient.pscrunch()
+        patient.pscrunch()  # pscrunching again is not necessary if already pscrunched but prevents a bug
         patient.remove_baseline()
         patient.dedisperse()
         patient.fscrunch()
@@ -131,7 +136,7 @@ def clean(ar, args, arch):
         loops = max_iterations
 
     # Reload archive if it is not supposed to be pscrunched.
-    if not args.pscrunch:
+    if not args.pscrunch and not args.memory:
         ar = psrchive.Archive_load(arch)
     
     # Set weights in archive.
