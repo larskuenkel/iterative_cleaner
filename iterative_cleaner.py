@@ -28,6 +28,8 @@ def parse_arguments():
     parser.add_argument('-z', '--print_zap', action='store_true', help='Creates a plot that shows which profiles get zapped.')
     parser.add_argument('-u', '--unload_res', action='store_true', help='Creates an archive that contains the pulse free residual.')
     parser.add_argument('-p', '--pscrunch', action='store_true', help='Pscrunches the output archive.')
+    parser.add_argument('-q', '--quiet', action='store_true', help='Do not print cleaning information.')
+    parser.add_argument('-l', '--no_log', action='store_true', help='Do not create cleaning log.')
     parser.add_argument('-r', '--pulse_region', nargs=3, type=float, default=[0,0,1], 
         metavar=('pulse_start', 'pulse_end', 'scaling_factor'), help="Defines the range of the pulse and a suppression factor.")
     parser.add_argument('-o', '--output', type=str, default='', metavar=('output_filename'), 
@@ -54,7 +56,8 @@ def main(args):
                 o_name = args.output
         ar = clean(ar, args, arch)
         ar.unload(o_name)
-        print "Cleaned archive: %s" % o_name
+        if not args.quiet:
+            print "Cleaned archive: %s" % o_name
 
 
 def clean(ar, args, arch):
@@ -73,10 +76,12 @@ def clean(ar, args, arch):
     test_weights = []
     test_weights.append(patient.get_weights())
     profile_number = orig_weights.size
-    print ("Total number of profiles: %s" % profile_number)
+    if not args.quiet:
+        print ("Total number of profiles: %s" % profile_number)
     while x < max_iterations:
         x += 1
-        print ("Loop: %s" % x)
+        if not args.quiet:
+            print ("Loop: %s" % x)
 
         # Prepare the data for template creation
         patient.pscrunch()  # pscrunching again is not necessary if already pscrunched but prevents a bug
@@ -123,16 +128,19 @@ def clean(ar, args, arch):
         rfi_frac = (new_weights.size - np.count_nonzero(new_weights)) / float(new_weights.size)
 
         # Print the changes to the previous loop to help in choosing a suitable max_iter
-        print ("Differences to previous weights: %s  RFI fraction: %s" %(diff_weigths, rfi_frac))
+        if not args.quiet:
+            print ("Differences to previous weights: %s  RFI fraction: %s" %(diff_weigths, rfi_frac))
         for old_weights in test_weights:
             if np.all(new_weights == old_weights):
-                print ("RFI removal stops after %s loops." % x)
+                if not args.quiet:
+                    print ("RFI removal stops after %s loops." % x)
                 loops = x
                 x = 1000000
         test_weights.append(new_weights)
 
     if x == max_iterations:
-        print ("Cleaning was interrupted after the maximum amount of loops (%s)" % max_iterations)
+        if not args.quiet:
+            print ("Cleaning was interrupted after the maximum amount of loops (%s)" % max_iterations)
         loops = max_iterations
 
     # Reload archive if it is not supposed to be pscrunched.
@@ -156,9 +164,10 @@ def clean(ar, args, arch):
             args.subintthresh), bbox_inches='tight')
 
     # Create log that contains the used parameters
-    with open("clean.log", "a") as myfile:
-        myfile.write("\n %s: Cleaned %s with %s, required loops=%s"
-         % (datetime.datetime.now(), ar_name, args, loops))
+    if not args.no_log:
+        with open("clean.log", "a") as myfile:
+            myfile.write("\n %s: Cleaned %s with %s, required loops=%s"
+             % (datetime.datetime.now(), ar_name, args, loops))
     return ar
 
 
