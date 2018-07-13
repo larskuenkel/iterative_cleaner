@@ -12,17 +12,16 @@ import argparse
 import psrchive
 
 
-
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Commands for the cleaner')
     parser.add_argument('archive', nargs='+', help='The chosen archives')
-    parser.add_argument('-c', '--chanthresh', type=float, default=5, metavar=('channel_threshold'), help='The threshold (in number of sigmas) a ' \
-                                                                    'profile needs to stand out compared to ' \
-                                                                    'others in the same channel for it to ' \
+    parser.add_argument('-c', '--chanthresh', type=float, default=5, metavar=('channel_threshold'), help='The threshold (in number of sigmas) a '
+                                                                    'profile needs to stand out compared to '
+                                                                    'others in the same channel for it to '
                                                                     'be removed.')
-    parser.add_argument('-s', '--subintthresh', type=float, default=5, metavar=('subint_threshold'), help='The threshold (in number of sigmas) a ' \
-                                                                    'profile needs to stand out compared to ' \
-                                                                    'others in the same subint for it to ' \
+    parser.add_argument('-s', '--subintthresh', type=float, default=5, metavar=('subint_threshold'), help='The threshold (in number of sigmas) a '
+                                                                    'profile needs to stand out compared to '
+                                                                    'others in the same subint for it to '
                                                                     'be removed.')
     parser.add_argument('-m', '--max_iter', type=int, default=5, metavar=('maximum_iterations'), help='Maximum number of iterations.')
     parser.add_argument('-z', '--print_zap', action='store_true', help='Creates a plot that shows which profiles get zapped.')
@@ -77,11 +76,11 @@ def clean(ar, args, arch):
     test_weights.append(patient.get_weights())
     profile_number = orig_weights.size
     if not args.quiet:
-        print ("Total number of profiles: %s" % profile_number)
+        print("Total number of profiles: %s" % profile_number)
     while x < max_iterations:
         x += 1
         if not args.quiet:
-            print ("Loop: %s" % x)
+            print("Loop: %s" % x)
 
         # Prepare the data for template creation
         patient.pscrunch()  # pscrunching again is not necessary if already pscrunched but prevents a bug
@@ -89,7 +88,7 @@ def clean(ar, args, arch):
         patient.dedisperse()
         patient.fscrunch()
         patient.tscrunch()
-        template = patient.get_Profile(0, 0, 0).get_amps()*10000
+        template = patient.get_Profile(0, 0, 0).get_amps() * 10000
 
         # Reset patient
         patient = ar.clone()
@@ -100,7 +99,7 @@ def clean(ar, args, arch):
 
         # re-set DM to 0
         patient.dededisperse()
-        
+
         if args.unload_res:
 
             residual = patient.clone()
@@ -133,20 +132,20 @@ def clean(ar, args, arch):
         for old_weights in test_weights:
             if np.all(new_weights == old_weights):
                 if not args.quiet:
-                    print ("RFI removal stops after %s loops." % x)
+                    print("RFI removal stops after %s loops." % x)
                 loops = x
                 x = 1000000
         test_weights.append(new_weights)
 
     if x == max_iterations:
         if not args.quiet:
-            print ("Cleaning was interrupted after the maximum amount of loops (%s)" % max_iterations)
+            print("Cleaning was interrupted after the maximum amount of loops (%s)" % max_iterations)
         loops = max_iterations
 
     # Reload archive if it is not supposed to be pscrunched.
     if not args.pscrunch and not args.memory:
         ar = psrchive.Archive_load(arch)
-    
+
     # Set weights in archive.
     set_weights_archive(ar, avg_test_results)
 
@@ -156,11 +155,11 @@ def clean(ar, args, arch):
 
     # Create plot that shows zapped( red) and unzapped( blue) profiles if needed
     if args.print_zap:
-        plt.imshow(avg_test_results.T, vmin=0.999, vmax=1.001, aspect='auto'
-            , interpolation='nearest', cmap=cm.coolwarm)
+        plt.imshow(avg_test_results.T, vmin=0.999, vmax=1.001, aspect='auto',
+                interpolation='nearest', cmap=cm.coolwarm)
         plt.gca().invert_yaxis()
         plt.title("%s cthresh=%s sthresh=%s" % (ar_name, args.chanthresh, args.subintthresh))
-        plt.savefig("%s_%s_%s.png" % (ar_name, args.chanthresh, 
+        plt.savefig("%s_%s_%s.png" % (ar_name, args.chanthresh,
             args.subintthresh), bbox_inches='tight')
 
     # Create log that contains the used parameters
@@ -171,7 +170,6 @@ def clean(ar, args, arch):
     return ar
 
 
-
 def comprehensive_stats(data, args, axis):
     """The comprehensive scaled stats that are used for
         the "Surgical Scrub" cleaning strategy.
@@ -179,6 +177,8 @@ def comprehensive_stats(data, args, axis):
         Inputs:
             data: A 3-D numpy array.
             axis: The axis that should be used for computing stats.
+            args: argparse namepsace object that need to contain the
+                following two parameters:
             chanthresh: The threshold (in number of sigmas) a
                 profile needs to stand out compared to others in the
                 same channel for it to be removed.
@@ -225,10 +225,11 @@ def channel_scaler(array2d):
     nchans = array2d.shape[1]
     for ichan in np.arange(nchans):
         with np.errstate(invalid='ignore', divide='ignore'):
-            detrended = array2d[:, ichan]
-            median = np.ma.median(detrended)
-            mad = np.ma.median(np.abs(detrended - median))
-            scaled[:, ichan] = (detrended - median) / mad
+            channel = array2d[:, ichan]
+            median = np.ma.median(channel)
+            channel_rescaled = channel - median
+            mad = np.ma.median(np.abs(channel_rescaled))
+            scaled[:, ichan] = (channel_rescaled) / mad
     return scaled
 
 
@@ -239,20 +240,21 @@ def subint_scaler(array2d):
     nsubs = array2d.shape[0]
     for isub in np.arange(nsubs):
         with np.errstate(invalid='ignore', divide='ignore'):
-            detrended = array2d[isub, :]
-            median = np.ma.median(detrended)
-            mad = np.ma.median(np.abs(detrended - median))
-            scaled[isub, :] = (detrended - median) / mad
+            subint = array2d[isub, :]
+            median = np.ma.median(subint)
+            subint_rescaled = subint - median
+            mad = np.ma.median(np.abs(subint_rescaled))
+            scaled[isub, :] = (subint_rescaled) / mad
     return scaled
 
 
 def remove_profile_inplace(ar, template, pulse_region):
     """Remove the temnplate pulse from the individual profiles.
     """
-    data = ar.get_data()[:,0,:,:] # Select first polarization channel
-                                  # archive is P-scrunched, so this is
-                                  # total intensity, the only polarization
-                                  # channel
+    data = ar.get_data()[:, 0, :, :]  # Select first polarization channel
+                                # archive is P-scrunched, so this is
+                                # total intensity, the only polarization
+                                # channel
     for isub, ichan in np.ndindex(ar.get_nsubint(), ar.get_nchan()):
         amps = remove_profile1d(data[isub, ichan], isub, ichan, template, pulse_region)[1]
         prof = ar.get_Profile(isub, 0, ichan)
@@ -264,27 +266,28 @@ def remove_profile_inplace(ar, template, pulse_region):
 
 def remove_profile1d(prof, isub, ichan, template, pulse_region):
 
-    err = lambda amp: amp*template - prof
+    err = lambda amp: amp * template - prof
     params, status = scipy.optimize.leastsq(err, [1.0])
     err2 = np.asarray(err(params))
     if pulse_region != [0, 0, 1]:
         p_start = int(pulse_region[1])
         p_end = int(pulse_region[2])
         err2[p_start:p_end] = err2[p_start:p_end] * pulse_region[0]
-    if status not in (1,2,3,4):
-        print "Bad status for least squares fit when " \
-                            "removing profile."
+    if status not in (1, 2, 3, 4):
+        print "Bad status for least squares fit when removing profile."
         return (isub, ichan), np.zeros_like(prof)
     else:
         return (isub, ichan), err2
 
+
 def apply_weights(data, weights):
     """Apply the weigths to an array.
-    """	
+    """
     nsubs, nchans, nbins = data.shape
     for isub in range(nsubs):
-        data[isub] = data[isub]*weights[isub,...,np.newaxis]
+        data[isub] = data[isub] * weights[isub, ..., np.newaxis]
     return data
+
 
 def set_weights_archive(archive, test_results):
     """Apply the weigths to an archive according to the test results.
@@ -294,7 +297,6 @@ def set_weights_archive(archive, test_results):
         integ.set_weight(int(ichan), 0.0)
 
 
-
-if __name__=="__main__":
+if __name__ == "__main__":
     args = parse_arguments()
     main(args)
