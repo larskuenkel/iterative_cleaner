@@ -35,6 +35,8 @@ def parse_arguments():
         help="Name of the output file. If set to 'std' the pattern NAME.FREQ.MJD.ar will be used.")
     parser.add_argument('--memory', action='store_true', help='Do not pscrunch the archive while it is in memory.\
                                                                 Costs RAM but prevents having to reload the archive.')
+    parser.add_argument('--bad_chan', type=float, default=1, help='Fraction of subints that needs to be removed in order to remove the whole channel.')
+    parser.add_argument('--bad_subint', type=float, default=1, help='Fraction of channels that needs to be removed in order to remove the whole subint.')
     args = parser.parse_args()
     return args
 
@@ -148,6 +150,11 @@ def clean(ar, args, arch):
 
     # Set weights in archive.
     set_weights_archive(ar, avg_test_results)
+
+    # Test if whole channel or subints should be removed
+    if args.bad_chan != 1 or args.bad_subint != 1:
+        ar = find_bad_parts(ar, args)
+
 
     # Unload residual if needed
     if args.unload_res:
@@ -295,6 +302,36 @@ def set_weights_archive(archive, test_results):
     for (isub, ichan) in np.argwhere(test_results >= 1):
         integ = archive.get_Integration(int(isub))
         integ.set_weight(int(ichan), 0.0)
+
+
+def find_bad_parts(archive, args):
+    """Checks whether whole channels or subints should be removed
+    """
+    weights = archive.get_weights()
+    n_subints = archive.get_nsubint()
+    n_channels = archive.get_nchan()
+    n_bad_channels = 0
+    n_bad_subints = 0
+
+    for i in range(n_subints):
+        bad_frac = 1 - np.count_nonzero(weights[i,:])/float(n_channels)
+        if bad_frac > args.bad_subint:
+            for j in range(n_channels):
+                integ = archive.get_Integration(int(i))
+                integ.set_weight(int(j), 0.0)
+            n_bad_subints += 1
+
+    for j in range(n_channels):
+        bad_frac = 1 - np.count_nonzero(weights[:,j])/float(n_subints)
+        if bad_frac > args.bad_chan:
+            for i in range(n_subints):
+                integ = archive.get_Integration(int(i))
+                integ.set_weight(int(j), 0.0)
+            n_bad_channels += 1
+
+    if not args.quiet and n_bad_channels + n_bad_subints != 0:
+        print("Removed %s bad subintegrations and %s bad channels." % (n_bad_subints, n_bad_channels))
+    return archive
 
 
 if __name__ == "__main__":
