@@ -314,7 +314,7 @@ def find_bad_parts(archive, args):
     n_bad_subints = 0
 
     for i in range(n_subints):
-        bad_frac = 1 - np.count_nonzero(weights[i,:])/float(n_channels)
+        bad_frac = 1 - np.count_nonzero(weights[i, :]) / float(n_channels)
         if bad_frac > args.bad_subint:
             for j in range(n_channels):
                 integ = archive.get_Integration(int(i))
@@ -322,7 +322,7 @@ def find_bad_parts(archive, args):
             n_bad_subints += 1
 
     for j in range(n_channels):
-        bad_frac = 1 - np.count_nonzero(weights[:,j])/float(n_subints)
+        bad_frac = 1 - np.count_nonzero(weights[:, j]) / float(n_subints)
         if bad_frac > args.bad_chan:
             for i in range(n_subints):
                 integ = archive.get_Integration(int(i))
