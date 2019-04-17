@@ -23,7 +23,7 @@ def parse_arguments():
                                                                     'profile needs to stand out compared to '
                                                                     'others in the same subint for it to '
                                                                     'be removed.')
-    parser.add_argument('-m', '--max_iter', type=int, default=5, metavar=('maximum_iterations'), help='Maximum number of iterations.')
+    parser.add_argument('-m', '--max_iter', type=int, default=3, metavar=('maximum_iterations'), help='Maximum number of iterations.')
     parser.add_argument('-z', '--print_zap', action='store_true', help='Creates a plot that shows which profiles get zapped.')
     parser.add_argument('-u', '--unload_res', action='store_true', help='Creates an archive that contains the pulse free residual.')
     parser.add_argument('-p', '--pscrunch', action='store_true', help='Pscrunches the output archive.')
@@ -37,6 +37,8 @@ def parse_arguments():
                                                                 Costs RAM but prevents having to reload the archive.')
     parser.add_argument('--bad_chan', type=float, default=1, help='Fraction of subints that needs to be removed in order to remove the whole channel.')
     parser.add_argument('--bad_subint', type=float, default=1, help='Fraction of channels that needs to be removed in order to remove the whole subint.')
+    parser.add_argument('-b', type=int, default=0, help='Try to minimize bandpass effects. \
+        Define the order of the polynomial which describes the bandpass')
     args = parser.parse_args()
     return args
 
@@ -77,6 +79,7 @@ def clean(ar, args, arch):
     test_weights = []
     test_weights.append(patient.get_weights())
     profile_number = orig_weights.size
+    new_weights = orig_weights
     if not args.quiet:
         print("Total number of profiles: %s" % profile_number)
     while x < max_iterations:
@@ -96,6 +99,20 @@ def clean(ar, args, arch):
         patient = ar.clone()
         patient.pscrunch()
         patient.remove_baseline()
+        if args.b:
+            data_bpass = patient.get_data()[:, 0, :, :]
+            data_bpass = apply_weights(data_bpass, new_weights)
+            bpass = np.std(data_bpass,2)
+            bpass = np.mean(bpass,0)
+            x_val= np.arange(len(bpass))
+            bpass_indices = np.nonzero(bpass)
+            x_val_filtered = x_val[bpass_indices]
+            bpass_filtered = bpass[bpass_indices]
+            poly = np.polyfit(x_val_filtered,bpass_filtered, args.b)
+            poly_calc = np.polyval(poly, x_val)
+        #     plt.plot(poly_calc)
+        #     plt.plot(bpass)
+        #     plt.show()
         patient.dedisperse()
         remove_profile_inplace(patient, template, pulse_region)
 
@@ -108,6 +125,24 @@ def clean(ar, args, arch):
 
         # Get data (select first polarization - recall we already P-scrunched)
         data = patient.get_data()[:, 0, :, :]
+        # if args.b:
+        #     # patient2 = ar.clone()
+        #     # patient2.pscrunch()
+        #     #data_bpass = patient.get_data()[:, 0, :, :]
+        #     # data_bpass = apply_weights(data_bpass, orig_weights)
+        #     bpass = np.std(data,2)
+        #     bpass = np.mean(bpass,0)
+        #     x_val= np.arange(len(bpass))
+        #     bpass_indices = np.nonzero(bpass)
+        #     x_val_filtered = x_val[bpass_indices]
+        #     bpass_filtered = bpass[bpass_indices]
+        #     poly = np.polyfit(x_val_filtered,bpass_filtered, 10)
+        #     poly_calc = np.polyval(poly, x_val)
+        #     # plt.plot(poly_calc)
+        #     # plt.plot(bpass)
+        #     # plt.show()
+        if args.b:
+            data /= poly_calc[None,:,None]
         data = apply_weights(data, orig_weights)
 
         # Mask profiles where weight is 0
