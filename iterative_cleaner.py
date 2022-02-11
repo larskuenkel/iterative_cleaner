@@ -3,6 +3,7 @@
 # Tool to remove RFI from pulsar archives.
 # Originally written by Patrick Lazarus. Modified by Lars Kuenkel.
 
+from __future__ import print_function
 import numpy as np
 import datetime
 import matplotlib.pyplot as plt
@@ -58,7 +59,7 @@ def main(args):
         ar = clean(ar, args, arch)
         ar.unload(o_name)
         if not args.quiet:
-            print "Cleaned archive: %s" % o_name
+            print("Cleaned archive: %s" % o_name)
 
 
 def clean(ar, args, arch):
@@ -78,11 +79,11 @@ def clean(ar, args, arch):
     test_weights.append(patient.get_weights())
     profile_number = orig_weights.size
     if not args.quiet:
-        print("Total number of profiles: %s" % profile_number)
+        print(("Total number of profiles: %s" % profile_number))
     while x < max_iterations:
         x += 1
         if not args.quiet:
-            print("Loop: %s" % x)
+            print(("Loop: %s" % x))
 
         # Prepare the data for template creation
         patient.pscrunch()  # pscrunching again is not necessary if already pscrunched but prevents a bug
@@ -130,18 +131,18 @@ def clean(ar, args, arch):
 
         # Print the changes to the previous loop to help in choosing a suitable max_iter
         if not args.quiet:
-            print ("Differences to previous weights: %s  RFI fraction: %s" %(diff_weigths, rfi_frac))
+            print(("Differences to previous weights: %s  RFI fraction: %s" %(diff_weigths, rfi_frac)))
         for old_weights in test_weights:
             if np.all(new_weights == old_weights):
                 if not args.quiet:
-                    print("RFI removal stops after %s loops." % x)
+                    print(("RFI removal stops after %s loops." % x))
                 loops = x
                 x = 1000000
         test_weights.append(new_weights)
 
     if x == max_iterations:
         if not args.quiet:
-            print("Cleaning was interrupted after the maximum amount of loops (%s)" % max_iterations)
+            print(("Cleaning was interrupted after the maximum amount of loops (%s)" % max_iterations))
         loops = max_iterations
 
     # Reload archive if it is not supposed to be pscrunched.
@@ -281,7 +282,7 @@ def remove_profile1d(prof, isub, ichan, template, pulse_region):
         p_end = int(pulse_region[2])
         err2[p_start:p_end] = err2[p_start:p_end] * pulse_region[0]
     if status not in (1, 2, 3, 4):
-        print "Bad status for least squares fit when removing profile."
+        print("Bad status for least squares fit when removing profile.")
         return (isub, ichan), np.zeros_like(prof)
     else:
         return (isub, ichan), err2
@@ -330,7 +331,7 @@ def find_bad_parts(archive, args):
             n_bad_channels += 1
 
     if not args.quiet and n_bad_channels + n_bad_subints != 0:
-        print("Removed %s bad subintegrations and %s bad channels." % (n_bad_subints, n_bad_channels))
+        print(("Removed %s bad subintegrations and %s bad channels." % (n_bad_subints, n_bad_channels)))
     return archive
 
 
