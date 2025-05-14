@@ -9,7 +9,7 @@ Two major changes were made:
   1. The cleaner uses an iterative approach for the template profile. This helps when the pulsar is masked by RFI in the original template profile.
   2. The detrending algorithm was removed. This feature may be reintroduced with different default parameters.
   
-Further details can be found in section 3 of my master's thesis: https://www2.physik.uni-bielefeld.de/fileadmin/user_upload/radio_astronomy/Publications/Masterarbeit_LarsKuenkel.pdf
+Further details can be found in section 3 of [my master's thesis](https://drive.google.com/file/d/1PPivaUqosjcTWvA0VUzueJ8YtDfg1G53)
   
 Usage:
 
